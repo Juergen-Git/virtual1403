@@ -35,7 +35,13 @@ import (
 
 	"github.com/racingmars/virtual1403/vprinter"
 	"github.com/racingmars/virtual1403/webserver/mailer"
+	"github.com/racingmars/virtual1403/webserver/model"
 )
+
+var roomuser string
+var user model.User
+var err error
+var maxLineCharacters int
 
 // printjob is the handler for the primary use case of the server: receive
 // the text of a print job and generate a PDF. Clients send the data in the
@@ -117,7 +123,8 @@ func (a *application) printjob(w http.ResponseWriter, r *http.Request) {
 	// Authenticate
 	authHdr := r.Header.Get("Authorization")
 	authHdr = strings.TrimPrefix(authHdr, "Bearer ")
-	user, err := a.db.GetUserForAccessKey(authHdr)
+	log.Printf("INFO:  authHdr = %s", authHdr)
+	user, err = a.db.GetUserForAccessKey(authHdr)
 	if err != nil {
 		log.Printf("INFO:  unauthorized web service call from %s",
 			r.RemoteAddr)
@@ -133,6 +140,8 @@ func (a *application) printjob(w http.ResponseWriter, r *http.Request) {
 			http.StatusForbidden)
 		return
 	}
+
+	roomuser = user.Room
 
 	// Now that we have confirmed this is a valid user, if we are limiting
 	// concurrency of the print service, we will wait until a seat is
@@ -192,11 +201,17 @@ func (a *application) printjob(w http.ResponseWriter, r *http.Request) {
 	// Create our virtual printer.
 	profileName := r.URL.Query().Get("profile")
 	log.Printf("INFO:  requested profile: %s", profileName)
-	job, err := vprinter.NewProfile(profileName, a.font, 11.4)
+	job, err := vprinter.NewProfile(profileName, a.font, 12.0)
 	if err != nil {
 		log.Printf("ERROR: couldn't create virtual printer: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	if profileName[0:4] == "lpi8" {
+		maxLineCharacters = 176
+	} else {
+		maxLineCharacters = 132
 	}
 
 	// Process the directives in the request body and send them to the
@@ -209,7 +224,7 @@ func (a *application) printjob(w http.ResponseWriter, r *http.Request) {
 		maxLines = 0
 	}
 	jobinfo, err := processPrintDirectives(d, job, pageQuota,
-		maxLines)
+		maxLines, a, w)
 	if err != nil {
 		log.Printf("INFO:  invalid print directives from %s: %v",
 			user.Email, err)
@@ -279,16 +294,25 @@ func (a *application) printjob(w http.ResponseWriter, r *http.Request) {
 }
 
 // jobInfoRegex matches valid/allowed job info data
-var jobInfoRegex = regexp.MustCompile(`^[a-zA-z0-9_]{0,25}$`)
+var jobInfoRegex       = regexp.MustCompile(`^[a-zA-z0-9_]{0,25}$`)
+var MVSMVTRoomRegex    = regexp.MustCompile(`.+START.+ROOM \S+`)
+var MVSMVTgetroomRegex = regexp.MustCompile(`(?P<1>.+START.+ROOM )(?P<2>\S+)(?P<3>.*)`)
+var zOSRoomRegex       = regexp.MustCompile(`^\* ROOM:\s+\S+\s+\*`)
+var zVMRoomRegex       = regexp.MustCompile(`^TAG DATA:\s+\S+`)
+var zOSzVMgetroomRegex = regexp.MustCompile(`(?P<1>:\s+)(?P<2>\S+)(?P<3>.*)`)
+var roomset bool
+var roomjob string
 
 // processPrintDirectives will apply print directives to the virtual printer
 // job, returning an error if the input data is invalid. Processing will stop
 // after maxpages if maxpages > 0 or after maxlines if maxlines > 0.
 func processPrintDirectives(r io.Reader, job vprinter.Job,
-	maxpages, maxlines int) (string, error) {
+	maxpages, maxlines int, a *application, w http.ResponseWriter) (string, error) {
 
 	var jobinfo string
 	var lines int
+	roomset = false
+	roomjob = ""
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
@@ -308,7 +332,7 @@ func processPrintDirectives(r io.Reader, job vprinter.Job,
 		}
 
 		// Trim to 132 runes
-		param = trimToRuneLen(param, 132)
+		param = trimToRuneLen(param, maxLineCharacters)
 
 		var pages int
 		switch directive {
@@ -334,9 +358,42 @@ func processPrintDirectives(r io.Reader, job vprinter.Job,
 		if maxlines > 0 && lines > maxlines {
 			break
 		}
+		if pages < 5 && (!roomset) {
+			if MVSMVTRoomRegex.MatchString(param) {
+				roomjob = MVSMVTgetroomRegex.FindStringSubmatch(param)[2]
+				roomset = true
+			}
+			if zOSRoomRegex.MatchString(param) {
+				roomjob = zOSzVMgetroomRegex.FindStringSubmatch(param)[2]
+				roomset = true
+			}
+			if zVMRoomRegex.MatchString(param) {
+				roomjob = zOSzVMgetroomRegex.FindStringSubmatch(param)[2]
+				roomset = true
+			}
+		}
 	}
 	if err := scanner.Err(); err != nil {
 		return "", err
+	}
+	if roomset {
+		log.Printf("INFO:  Room from Job:  %s\n", roomjob)
+		log.Printf("INFO:  Room from User: %s\n", roomuser)
+		if roomjob != roomuser {
+			user_temp, err_temp := a.db.GetUserForRoom(roomjob)
+			if err_temp != nil {
+				log.Printf("INFO:  no user found for room %s",
+					roomjob)
+				user_temp = user
+			}
+			if !user_temp.Enabled {
+				user_temp = user
+			}
+			if !user_temp.Verified {
+				user_temp = user
+			}
+		user = user_temp
+		}
 	}
 	return jobinfo, nil
 }

@@ -115,11 +115,12 @@ func (app *application) renderLoginError(w http.ResponseWriter,
 }
 
 func (app *application) renderSignupError(w http.ResponseWriter,
-	r *http.Request, email, name, message string) {
+	r *http.Request, email, name, room, message string) {
 
 	app.render(w, r, "home.page.tmpl", map[string]string{
 		"signupEmail": email,
 		"signupName":  name,
+		"signupRoom":  room,
 		"signupError": message,
 	})
 }
@@ -169,6 +170,7 @@ func (app *application) userInfo(w http.ResponseWriter, r *http.Request) {
 		"isAdmin":             u.Admin,
 		"verified":            u.Verified,
 		"name":                u.FullName,
+		"room":                u.Room,
 		"email":               u.Email,
 		"apiKey":              u.AccessKey,
 		"apiEndpoint":         app.serverBaseURL + "/print",
@@ -176,6 +178,7 @@ func (app *application) userInfo(w http.ResponseWriter, r *http.Request) {
 		"jobCount":            u.JobCount,
 		"passwordError":       app.session.Get(r, "passwordError"),
 		"passwordSuccess":     app.session.Get(r, "passwordSuccess"),
+		"roomSuccess":         app.session.Get(r, "roomSuccess"),
 		"verifySuccess":       app.session.Get(r, "verifySuccess"),
 		"verifyResendError":   app.session.Get(r, "verifyResendError"),
 		"verifyResendSuccess": app.session.Get(r, "verifyResendSuccess"),
@@ -195,6 +198,9 @@ func (app *application) userInfo(w http.ResponseWriter, r *http.Request) {
 	}
 	if responseValues["passwordSuccess"] != nil {
 		app.session.Remove(r, "passwordSuccess")
+	}
+	if responseValues["roomSuccess"] != nil {
+		app.session.Remove(r, "roomSuccess")
 	}
 	if responseValues["verifySuccess"] != nil {
 		app.session.Remove(r, "verifySuccess")
@@ -386,6 +392,7 @@ func (app *application) adminEditUser(w http.ResponseWriter, r *http.Request) {
 		"isAdmin":              u.Admin, // logged-in user, not target user
 		"verified":             user.Verified,
 		"name":                 user.FullName,
+		"room":                 user.Room,
 		"email":                user.Email,
 		"admin":                user.Admin,
 		"active":               user.Enabled,
@@ -451,6 +458,7 @@ func (app *application) adminEditUserPost(w http.ResponseWriter,
 
 	newPassword := r.Form.Get("new-password")
 	newName := r.Form.Get("name")
+	newRoom := r.Form.Get("room")
 	active := r.Form.Get("active")
 	deliverEmail := r.Form.Get("emailDelivery")
 	nuisanceFilter := r.Form.Get("nuisanceFilter")
@@ -463,6 +471,10 @@ func (app *application) adminEditUserPost(w http.ResponseWriter,
 
 	if newName != "" {
 		user.FullName = newName
+	}
+
+	if newRoom != "" {
+		user.Room = newRoom
 	}
 
 	if active == "yes" {
@@ -563,6 +575,7 @@ func (app *application) signup(w http.ResponseWriter, r *http.Request) {
 
 	email := r.PostFormValue("email")
 	name := r.PostFormValue("name")
+	room := r.PostFormValue("room")
 	botDetection := r.PostFormValue("website")
 	password := r.PostFormValue("password")
 	passwordConfirm := r.PostFormValue("password-confirm")
@@ -573,37 +586,44 @@ func (app *application) signup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !mailer.ValidateAddress(strings.ToLower(email)) {
-		app.renderSignupError(w, r, email, name,
+		app.renderSignupError(w, r, email, name, room,
 			"Must provide a valid email address.")
 		return
 	}
 
 	if name == "" {
-		app.renderSignupError(w, r, email, name,
+		app.renderSignupError(w, r, email, name, room,
 			"Must provide a name.")
 		return
 	}
 
+	if room == "" {
+		app.renderSignupError(w, r, email, name, room,
+			"Must provide a room.")
+		return
+	}
+
 	if password == "" || len(password) < 8 {
-		app.renderSignupError(w, r, email, name,
+		app.renderSignupError(w, r, email, name, room,
 			"Must provide a password at least 8 characters long.")
 		return
 	}
 
 	if password != passwordConfirm {
-		app.renderSignupError(w, r, email, name,
+		app.renderSignupError(w, r, email, name, room,
 			"Passwords do not match.")
 		return
 	}
 
 	if _, err := app.db.GetUser(email); err != db.ErrNotFound {
-		app.renderSignupError(w, r, email, name,
+		app.renderSignupError(w, r, email, name, room,
 			"That email address already has an account.")
 		return
 	}
 
 	newuser := model.NewUser(email, password)
 	newuser.FullName = name
+	newuser.Room = room
 	newuser.Enabled = true
 	newuser.LastVerificationEmail = time.Now()
 
@@ -748,6 +768,39 @@ func (app *application) changePassword(w http.ResponseWriter, r *http.Request) {
 	app.session.Put(r, "passwordSuccess",
 		"Your password was successfully changed.")
 	log.Printf("INFO  %s successfully changed their password", u.Email)
+	http.Redirect(w, r, "user", http.StatusSeeOther)
+}
+
+
+// changeRoom is the HTTP handler for POSTS to /changeroom for users
+// to change their room. We verify that a valid user is logged in, then
+// change the room.
+func (app *application) changeRoom(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Verify we have a logged in, valid user
+	u := app.checkLoggedInUser(r)
+	if u == nil {
+		// No logged in user
+		app.session.Destroy(r)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	newRoom := r.PostFormValue("new-room")
+
+	u.SetRoom(newRoom)
+	if err := app.db.SaveUser(*u); err != nil {
+		app.serverError(w, "Sorry, a database error has occurred")
+		return
+	}
+
+	app.session.Put(r, "roomSuccess",
+		"Your room was successfully changed.")
+	log.Printf("INFO  %s successfully changed their room", u.Email)
 	http.Redirect(w, r, "user", http.StatusSeeOther)
 }
 

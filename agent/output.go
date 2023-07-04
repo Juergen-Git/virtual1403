@@ -48,7 +48,7 @@ func newPDFOutputHandler(outputDir, profile string, fontOverride []byte,
 	}
 	var err error
 
-	o.job, err = vprinter.NewProfile(profile, fontOverride, 11.4)
+	o.job, err = vprinter.NewProfile(profile, fontOverride, 12.0)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func (o *pdfOutputHandler) EndOfJob(jobinfo string) {
 	// new job.
 	defer func() {
 		var err error
-		o.job, err = vprinter.NewProfile(o.profile, o.font, 11.4)
+		o.job, err = vprinter.NewProfile(o.profile, o.font, 12.0)
 		if err != nil {
 			log.Printf("ERROR: [%s] couldn't re-initialize virtual 1403: %v",
 				o.inputName, err)

@@ -25,7 +25,7 @@ type PrinterHandler interface {
 	EndOfJob(jobinfo string)
 }
 
-const maxLineLen = 132
+const maxLineLen = 176
 
 const (
 	charTab byte = 0x9

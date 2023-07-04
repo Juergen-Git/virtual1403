@@ -164,6 +164,7 @@ func (a *application) createAdmin(email string) error {
 
 	u := model.NewUser(email, pwstring)
 	u.FullName = "Administrator"
+	u.Room = "ADM"
 	u.Admin = true
 	u.Verified = true
 	u.Enabled = true

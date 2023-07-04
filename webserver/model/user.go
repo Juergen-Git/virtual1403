@@ -31,6 +31,7 @@ type User struct {
 	PasswordHash          string
 	AccessKey             string
 	FullName              string
+	Room                  string
 	Admin                 bool
 	Verified              bool
 	Enabled               bool
@@ -63,6 +64,10 @@ func (u *User) SetPassword(password string) {
 		panic("SetPassword should never make a bcrypt call that fails")
 	}
 	u.PasswordHash = base64.StdEncoding.EncodeToString(hash)
+}
+
+func (u *User) SetRoom(room string) {
+	u.Room = room
 }
 
 // CheckPassword will return true if the provided password is valid for the

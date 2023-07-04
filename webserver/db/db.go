@@ -46,6 +46,9 @@ type DB interface {
 	// GetUserForAccessKey returns the user with the provided access key.
 	GetUserForAccessKey(key string) (model.User, error)
 
+	// GetUserForRoom returns the user with the provided room.
+	GetUserForRoom(room string) (model.User, error)
+
 	// GetUsers returns all users in the database.
 	GetUsers() ([]model.User, error)
 

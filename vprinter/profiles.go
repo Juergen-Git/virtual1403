@@ -46,50 +46,62 @@ func NewProfile(profile string, fontOverride []byte,
 	if fontOverride != nil {
 		tempFont = fontOverride
 	}
-	tempSize := 11.4
+	tempSize := 12.0
 	if sizeOverride > 0 {
 		tempSize = sizeOverride
 	}
 
 	switch strings.ToLower(profile) {
 	case "default-green":
-		return New1403(tempFont, tempSize, 5, true, true, DarkGreen, LightGreen)
+		return New1403(tempFont, tempSize, 6, true, true, DarkGreen, LightGreen)
 	case "default-green-noskip":
-		return New1403(tempFont, tempSize, 0, true, true, DarkGreen, LightGreen)
+		return New1403(tempFont, tempSize, 1, true, true, DarkGreen, LightGreen)
 	case "default-blue":
-		return New1403(tempFont, tempSize, 5, true, true, DarkBlue, LightBlue)
+		return New1403(tempFont, tempSize, 6, true, true, DarkBlue, LightBlue)
 	case "default-blue-noskip":
-		return New1403(tempFont, tempSize, 0, true, true, DarkBlue, LightBlue)
+		return New1403(tempFont, tempSize, 1, true, true, DarkBlue, LightBlue)
 	case "default-plain":
-		return New1403(tempFont, tempSize, 5, true, false, ColorRGB{}, ColorRGB{})
+		return New1403(tempFont, tempSize, 6, true, false, ColorRGB{}, ColorRGB{})
 	case "default-plain-noskip":
-		return New1403(tempFont, tempSize, 0, true, false, ColorRGB{}, ColorRGB{})
+		return New1403(tempFont, tempSize, 1, true, false, ColorRGB{}, ColorRGB{})
 	case "retro-green":
-		return New1403(wornFont, 10, 5, true, true, DarkGreen, LightGreen)
+		return New1403(wornFont, 10, 6, true, true, DarkGreen, LightGreen)
 	case "retro-green-noskip":
-		return New1403(wornFont, 10, 0, true, true, DarkGreen, LightGreen)
+		return New1403(wornFont, 10, 1, true, true, DarkGreen, LightGreen)
 	case "retro-blue":
-		return New1403(wornFont, 10, 5, true, true, DarkBlue, LightBlue)
+		return New1403(wornFont, 10, 6, true, true, DarkBlue, LightBlue)
 	case "retro-blue-noskip":
-		return New1403(wornFont, 10, 0, true, true, DarkBlue, LightBlue)
+		return New1403(wornFont, 10, 1, true, true, DarkBlue, LightBlue)
 	case "retro-plain":
-		return New1403(wornFont, 10, 5, true, false, ColorRGB{}, ColorRGB{})
+		return New1403(wornFont, 10, 6, true, false, ColorRGB{}, ColorRGB{})
 	case "retro-plain-noskip":
-		return New1403(wornFont, 10, 0, true, false, ColorRGB{}, ColorRGB{})
+		return New1403(wornFont, 10, 1, true, false, ColorRGB{}, ColorRGB{})
 	case "modern-green":
-		return New1403(defaultFont, 11.4, 5, false, true, DarkGreen, LightGreen)
+		return New1403(defaultFont, 12.0, 6, false, true, DarkGreen, LightGreen)
 	case "modern-green-noskip":
-		return New1403(defaultFont, 11.4, 0, false, true, DarkGreen, LightGreen)
+		return New1403(defaultFont, 12.0, 1, false, true, DarkGreen, LightGreen)
 	case "modern-blue":
-		return New1403(defaultFont, 11.4, 5, false, true, DarkBlue, LightBlue)
+		return New1403(defaultFont, 12.0, 6, false, true, DarkBlue, LightBlue)
 	case "modern-blue-noskip":
-		return New1403(defaultFont, 11.4, 0, false, true, DarkBlue, LightBlue)
+		return New1403(defaultFont, 12.0, 1, false, true, DarkBlue, LightBlue)
 	case "modern-plain":
-		return New1403(defaultFont, 11.4, 5, false, false, ColorRGB{}, ColorRGB{})
+		return New1403(defaultFont, 12.0, 6, false, false, ColorRGB{}, ColorRGB{})
 	case "modern-plain-noskip":
-		return New1403(defaultFont, 11.4, 0, false, false, ColorRGB{}, ColorRGB{})
+		return New1403(defaultFont, 12.0, 1, false, false, ColorRGB{}, ColorRGB{})
+	case "lpi8-modern-green":
+		return New1403(defaultFont, 9.0, 8, false, true, DarkGreen, LightGreen)
+	case "lpi8-modern-green-noskip":
+		return New1403(defaultFont, 9.0, 1, false, true, DarkGreen, LightGreen)
+	case "lpi8-modern-blue":
+		return New1403(defaultFont, 9.0, 8, false, true, DarkBlue, LightBlue)
+	case "lpi8-modern-blue-noskip":
+		return New1403(defaultFont, 9.0, 1, false, true, DarkBlue, LightBlue)
+	case "lpi8-modern-plain":
+		return New1403(defaultFont, 9.0, 8, false, false, ColorRGB{}, ColorRGB{})
+	case "lpi8-modern-plain-noskip":
+		return New1403(defaultFont, 9.0, 1, false, false, ColorRGB{}, ColorRGB{})
 	default:
 		// default is the same as default-green
-		return New1403(tempFont, tempSize, 5, true, true, DarkGreen, LightGreen)
+		return New1403(tempFont, tempSize, 6, true, true, DarkGreen, LightGreen)
 	}
 }

@@ -219,6 +219,39 @@ access_key: "{{.apiKey}}"</pre></p>
         </div>
     </div>
 </form>
+<p class="is-size-5 block">Change room</p>
+{{with .roomSuccess}}
+    <div class="notification is-success block">
+        {{.}}
+    </div>
+{{end}}
+<form method="post" action="changeroom" class="block">
+    <div class="field is-horizontal">
+        <div class="field-label is-normal">
+            <label class="label" for="room">Room</label>
+        </div>
+        <div class="field-body">
+            <div class="field">
+                <div class="control">
+                    <input class="input" type="text" name="new-room" id="id-room" placeholder="Room" value="{{with .room}}{{.}}{{end}}">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="field is-horizontal">
+        <div class="field-label">
+            <!-- Left empty for spacing -->
+        </div>
+        <div class="field-body">
+            <div class="field">
+                <div class="control">
+                    <input type="submit" class="button is-warning" value="Change Room">
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
 </div>
 
 </div>

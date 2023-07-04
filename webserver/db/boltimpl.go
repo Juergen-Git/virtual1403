@@ -40,6 +40,7 @@ type boltimpl struct {
 const (
 	userBucketName             = "users"
 	accessKeyBucketName        = "access_keys"
+	roomBucketName             = "rooms"
 	jobLogBucketName           = "job_log"
 	jobLogUserIndexName        = "job_log_user_index"
 	configBucketName           = "config"
@@ -64,6 +65,10 @@ func NewDB(path string) (DB, error) {
 		}
 		if _, err := tx.CreateBucketIfNotExists(
 			[]byte(accessKeyBucketName)); err != nil {
+			return err
+		}
+		if _, err := tx.CreateBucketIfNotExists(
+			[]byte(roomBucketName)); err != nil {
 			return err
 		}
 		if _, err := tx.CreateBucketIfNotExists(
@@ -103,9 +108,9 @@ func (db *boltimpl) Close() error {
 }
 
 // SaveUser will save a new user or update an existing user in the database.
-// We also want an index on the user's access key, so we *always* keep the
-// user bucket and access key bucket in sync here. We delete and recreate the
-// access key each time, even if it hasn't changed. This is simpler logic and
+// We also want an index on the user's access key and room, so we *always* keep
+// user bucket, access key bucket and room bucket in sync here. We delete and recreate
+// access key and room each time, even if it hasn't changed. This is simpler logic and
 // user record updates aren't frequent enough that we need to optimize this.
 func (db *boltimpl) SaveUser(user model.User) error {
 	// Prepare the user for saving in DB by converting to JSON. If the
@@ -121,24 +126,30 @@ func (db *boltimpl) SaveUser(user model.User) error {
 	return db.bdb.Update(func(tx *bolt.Tx) error {
 		userBucket := tx.Bucket([]byte(userBucketName))
 		accessBucket := tx.Bucket([]byte(accessKeyBucketName))
+		roomBucket := tx.Bucket([]byte(roomBucketName))
 
 		// Does the user already exist?
 		olduserjson := userBucket.Get([]byte(strings.ToLower(user.Email)))
 		if olduserjson != nil {
-			// yes... let's grab the old access key so we can delete it
+			// yes... let's grab the old access key and room so we can delete them
 			var olduser model.User
 			if err := json.Unmarshal(olduserjson, &olduser); err != nil {
 				return err
 			}
 			accessBucket.Delete([]byte(olduser.AccessKey))
+			roomBucket.Delete([]byte(olduser.AccessKey))
 		}
 
-		// Save the new user record and access key linked to the user
+		// Save the new user record and access key and room linked to the user
 		if err := userBucket.Put([]byte(strings.ToLower(user.Email)),
 			userjson); err != nil {
 			return err
 		}
 		if err := accessBucket.Put([]byte(user.AccessKey),
+			[]byte(strings.ToLower(user.Email))); err != nil {
+			return err
+		}
+		if err := roomBucket.Put([]byte(user.Room),
 			[]byte(strings.ToLower(user.Email))); err != nil {
 			return err
 		}
@@ -209,12 +220,30 @@ func (db *boltimpl) GetUserForAccessKey(key string) (model.User, error) {
 	return db.GetUser(email)
 }
 
+func (db *boltimpl) GetUserForRoom(room string) (model.User, error) {
+	var email string
+	if err := db.bdb.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(roomBucketName))
+		emailbytes := b.Get([]byte(room))
+		if emailbytes == nil {
+			return ErrNotFound
+		}
+		email = string(emailbytes)
+		return nil
+	}); err != nil {
+		return model.User{}, err
+	}
+
+	return db.GetUser(email)
+}
+
 // DeleteUser needs to keep user bucket and access key bucket in sync, so
 // will delete from both.
 func (db *boltimpl) DeleteUser(email, who string) error {
 	return db.bdb.Update(func(tx *bolt.Tx) error {
 		userBucket := tx.Bucket([]byte(userBucketName))
 		accessBucket := tx.Bucket([]byte(accessKeyBucketName))
+		roomBucket := tx.Bucket([]byte(roomBucketName))
 		deleteLogBucket := tx.Bucket([]byte(deleteLogBucketName))
 
 		olduserjson := userBucket.Get([]byte(strings.ToLower(email)))
@@ -228,8 +257,9 @@ func (db *boltimpl) DeleteUser(email, who string) error {
 			return err
 		}
 
-		// Now we delete access key and user
+		// Now we delete access key, room and user
 		accessBucket.Delete([]byte(olduser.AccessKey))
+		roomBucket.Delete([]byte(olduser.Room))
 		userBucket.Delete([]byte(strings.ToLower(email)))
 
 		// Need to delete job log entries and job log index entries. We will

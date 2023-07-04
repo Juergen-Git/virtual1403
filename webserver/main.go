@@ -185,6 +185,8 @@ func main() {
 	mux.Handle("/signup", app.session.Enable(http.HandlerFunc(app.signup)))
 	mux.Handle("/changepassword", app.session.Enable(http.HandlerFunc(
 		app.changePassword)))
+	mux.Handle("/changeroom", app.session.Enable(http.HandlerFunc(
+		app.changeRoom)))
 	mux.Handle("/logout", app.session.Enable(http.HandlerFunc(app.logout)))
 	mux.Handle("/user", app.session.Enable(http.HandlerFunc(app.userInfo)))
 	mux.Handle("/userjobs", app.session.Enable(http.HandlerFunc(app.userJobs)))

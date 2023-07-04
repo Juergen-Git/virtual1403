@@ -125,6 +125,24 @@ func (s *scanner) emitLine(linefeed bool) {
 	for i := 0; i < s.pos; i++ {
 		var r rune
 		switch s.curline[i] {
+		case 0x87:
+			r = 'ç'
+		case 0x81:
+			r = 'ü'
+		case 0x8a:
+			r = 'è'
+		case 0x94:
+			r = 'ö'
+		case 0x84:
+			r = 'ä'
+		case 0x85:
+			r = 'à'
+		case 0x9c:
+			r = '£'
+		case 0xb5:
+			r = '§'
+		case 0xf0:
+			r = '°'
 		case 0x5e:
 			r = '¬'
 		case 0xd6:

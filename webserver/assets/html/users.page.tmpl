@@ -13,6 +13,7 @@
     <thead><tr>
         <th>Email</th>
         <th>Name</th>
+        <th>Room</th>
         <th>Jobs</th>
         <th>Pages</th>
         <th>Last Job <span class="is-size-7">(UTC)</span></th>
@@ -28,6 +29,7 @@
         <tr>
             <td><a href="edituser?email={{.Email}}">{{.Email}}</a></td>
             <td>{{.FullName}}</td>
+            <td>{{.Room}}</td>
             <td>{{.JobCount}}</td>
             <td>{{.PageCount}}</td>
             <td>{{.LastJob.Format "2006-01-02 15:04:05"}}</td>

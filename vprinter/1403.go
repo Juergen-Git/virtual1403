@@ -26,8 +26,11 @@ import (
 	"github.com/jung-kurt/gofpdf"
 )
 
-const maxLinesPerPage = 66
-const maxLineCharacters = 132
+var maxLinesPerPage int
+var maxLineCharacters int
+var marginchars int
+var leftmarginnumbers int
+var currentfontsize float64
 
 type ColorRGB struct{ R, G, B int }
 
@@ -54,6 +57,20 @@ const (
 //           VintageMono use font size 11.4; worn use 10
 func New1403(font []byte, fontsize float64, skipLines int, forceUpper,
 	drawBG bool, dark, light ColorRGB) (Job, error) {
+
+	if fontsize == 9.0 {
+		maxLinesPerPage = 88
+		maxLineCharacters = 176
+		marginchars = 8
+		leftmarginnumbers = 80
+	} else {
+		maxLinesPerPage = 66
+		maxLineCharacters = 132
+		marginchars = 6
+		leftmarginnumbers = 60
+	}
+
+	currentfontsize=fontsize
 
 	j := &virtual1403{
 		font:       font,
@@ -87,7 +104,7 @@ func New1403(font []byte, fontsize float64, skipLines int, forceUpper,
 	// the page. The left margin of our text output area will be the center
 	// of the page minus half of the line width.
 	j.pdf.SetFont("userfont", "", j.fontSize)
-	j.leftMargin = v1403W/2 - determineLineWidth(j.pdf)/2
+	j.leftMargin = determineleftMarginWidth(j.pdf)
 
 	j.NewPage()
 
@@ -106,8 +123,8 @@ func (job *virtual1403) AddLine(s string, linefeed bool) int {
 		s = strings.ToUpper(s)
 	}
 	job.pdf.SetXY(job.leftMargin+job.overstrikeOffset,
-		float64(job.curLine*12)+.25)
-	job.pdf.CellFormat(0, 12, s, "", 0, "LM", false, 0, "")
+		float64(job.curLine*int(currentfontsize))+.25)
+	job.pdf.CellFormat(0, currentfontsize, s, "", 0, "LM", false, 0, "")
 	if linefeed {
 		job.curLine++
 		job.overstrikeOffset = 0
@@ -251,8 +268,8 @@ func drawBackgroundTemplate(pdf *gofpdf.Tpl, drawBG bool, dark,
 	// Left margin numbers
 	pdf.SetFont("Helvetica", "", 7)
 	pdf.SetTextColor(dark.R, dark.G, dark.B)
-	for i := 0; i < 60; i++ {
-		pdf.SetXY(30, float64(72+i*12))
+	for i := 0; i < leftmarginnumbers; i++ {
+		pdf.SetXY(30, float64(72+i*int(currentfontsize)))
 		// The centering of the margin numbers looks better if we use
 		// *slightly* different width for the cell for single- versus double-
 		// digit numbers.
@@ -260,7 +277,7 @@ func drawBackgroundTemplate(pdf *gofpdf.Tpl, drawBG bool, dark,
 		if i < 9 {
 			w = 10
 		}
-		pdf.CellFormat(w, 12, strconv.Itoa(i+1), "", 0, "CM", false, 0, "")
+		pdf.CellFormat(w, currentfontsize, strconv.Itoa(i+1), "", 0, "CM", false, 0, "")
 	}
 
 	// Right margin numbers
@@ -281,11 +298,10 @@ func drawBackgroundTemplate(pdf *gofpdf.Tpl, drawBG bool, dark,
 	pdf.SetTextColor(0, 0, 0)
 }
 
-func determineLineWidth(pdf *gofpdf.Fpdf) float64 {
-	const linechars = 132
-	var dummyline [linechars]byte
-	for i := 0; i < linechars; i++ {
+func determineleftMarginWidth(pdf *gofpdf.Fpdf) float64 {
+	var dummyline [20]byte
+	for i := 0; i < marginchars; i++ {
 		dummyline[i] = ' '
 	}
-	return pdf.GetStringWidth(string(dummyline[:]))
+	return pdf.GetStringWidth(string(dummyline[0:marginchars]))
 }
