@@ -78,14 +78,20 @@ func NewProfile(profile string, fontOverride []byte,
 		return New1403(wornFont, 10, 1, true, false, ColorRGB{}, ColorRGB{})
 	case "modern-green":
 		return New1403(defaultFont, 12.0, 6, false, true, DarkGreen, LightGreen)
+	case "modern-green-skip5":
+		return New1403(defaultFont, 12.0, 5, false, true, DarkGreen, LightGreen)
 	case "modern-green-noskip":
 		return New1403(defaultFont, 12.0, 1, false, true, DarkGreen, LightGreen)
 	case "modern-blue":
 		return New1403(defaultFont, 12.0, 6, false, true, DarkBlue, LightBlue)
+	case "modern-blue-skip5":
+		return New1403(defaultFont, 12.0, 5, false, true, DarkBlue, LightBlue)
 	case "modern-blue-noskip":
 		return New1403(defaultFont, 12.0, 1, false, true, DarkBlue, LightBlue)
 	case "modern-plain":
 		return New1403(defaultFont, 12.0, 6, false, false, ColorRGB{}, ColorRGB{})
+	case "modern-plain-skip5":
+		return New1403(defaultFont, 12.0, 5, false, false, ColorRGB{}, ColorRGB{})
 	case "modern-plain-noskip":
 		return New1403(defaultFont, 12.0, 1, false, false, ColorRGB{}, ColorRGB{})
 	case "lpi8-modern-green":
